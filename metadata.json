@@ -1,0 +1,7 @@
+{
+  "name": "SMS Bridge",
+  "description": "Secure QR-paired Android SMS bridge system with dynamic expiring tokens, real-time command processing, and web dashboard integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
