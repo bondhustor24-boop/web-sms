@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Bridge Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- HTML5 QR Code Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navigation Header -->
+    <header class="navbar">
+      <div class="brand">
+        <span class="material-symbols-outlined brand-icon">sensors</span>
+        <div class="brand-text">
+          <h1>SMS Bridge</h1>
+          <span class="subtext">Secure QR-Paired Android SMS Dispatcher</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="configBtn" class="btn btn-outline" title="Firebase Settings">
+          <span class="material-symbols-outlined">settings</span>
+          <span>Firebase Setup</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="main-grid">
+      <!-- Left Column: Connection & Device Control -->
+      <section class="panel device-panel">
+        <div class="panel-header">
+          <h2><span class="material-symbols-outlined">phone_android</span> Device Connection</h2>
+          <span id="connectionBadge" class="badge badge-offline">🔴 Disconnected</span>
+        </div>
+
+        <!-- State: Unpaired -->
+        <div id="unpairedView" class="view-state active">
+          <div class="qr-scan-box">
+            <span class="material-symbols-outlined scan-placeholder-icon">qr_code_scanner</span>
+            <h3>Pair with Android Phone</h3>
+            <p>Scan the dynamic QR code displayed on the Android SMS Bridge app to establish a secure, one-time link.</p>
+            
+            <button id="startScanBtn" class="btn btn-primary btn-lg">
+              <span class="material-symbols-outlined">photo_camera</span>
+              <span>Scan QR Code</span>
+            </button>
+
+            <div class="divider"><span>OR MANUAL PAIRING</span></div>
+
+            <div class="manual-input-group">
+              <input type="text" id="manualDeviceId" placeholder="Device ID (e.g. DEV-A1B2C3)" />
+              <input type="text" id="manualToken" placeholder="6-digit Pairing Token" maxlength="6" />
+              <button id="manualPairBtn" class="btn btn-secondary">Connect Device</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State: Paired -->
+        <div id="pairedView" class="view-state">
+          <div class="device-card">
+            <div class="device-header">
+              <div class="device-avatar">
+                <span class="material-symbols-outlined">smartphone</span>
+              </div>
+              <div class="device-meta">
+                <h3 id="connectedDeviceName">My Android Phone</h3>
+                <div class="device-id-row">
+                  <span class="label">ID:</span>
+                  <code id="connectedDeviceId">DEV-XXXXXX</code>
+                </div>
+              </div>
+            </div>
+
+            <div class="status-list">
+              <div class="status-row">
+                <span class="status-label">Phone Status</span>
+                <span id="deviceLiveStatus" class="status-val text-success">🟢 Online</span>
+              </div>
+              <div class="status-row">
+                <span class="status-label">Last Seen</span>
+                <span id="deviceLastSeen" class="status-val">Just now</span>
+              </div>
+              <div class="status-row">
+                <span class="status-label">Pairing Security</span>
+                <span class="status-val text-primary">🔒 User-Authorized Token</span>
+              </div>
+            </div>
+
+            <button id="disconnectBtn" class="btn btn-danger btn-block">
+              <span class="material-symbols-outlined">link_off</span>
+              <span>Disconnect / Revoke Pairing</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: SMS Compose & Live Command Monitor -->
+      <section class="panel sms-panel">
+        <div class="panel-header">
+          <h2><span class="material-symbols-outlined">sms</span> Compose & Send SMS</h2>
+        </div>
+
+        <form id="smsForm" class="sms-form">
+          <div class="form-group">
+            <label for="recipientNumber">Recipient Phone Number</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined">call</span>
+              <input type="tel" id="recipientNumber" placeholder="+1234567890 or 017XXXXXXXX" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-row">
+              <label for="smsMessage">Message</label>
+              <span id="charCounter" class="char-counter">0 / 160 chars (1 SMS)</span>
+            </div>
+            <textarea id="smsMessage" rows="4" placeholder="Type your SMS message here..." required></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="sendSmsBtn" class="btn btn-primary btn-lg" disabled>
+              <span class="material-symbols-outlined">send</span>
+              <span>Send SMS via Phone</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Command Tracking & Status -->
+        <div class="activity-section">
+          <div class="section-header">
+            <h3><span class="material-symbols-outlined">history</span> Command Activity & Status</h3>
+            <button id="clearWebLogs" class="btn btn-sm btn-ghost" title="Clear local list">Clear List</button>
+          </div>
+
+          <div id="commandList" class="command-list">
+            <div class="empty-state">
+              <span class="material-symbols-outlined">chat_bubble_outline</span>
+              <p>No SMS commands sent yet. Paired device will process commands in real-time.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Camera QR Scanner Modal -->
+    <div id="scannerModal" class="modal">
+      <div class="modal-content modal-scanner">
+        <div class="modal-header">
+          <h3>Scan Pairing QR Code</h3>
+          <button id="closeScannerBtn" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="qr-reader" style="width: 100%;"></div>
+          <p class="scanner-tip">Align the Android phone's QR code within the viewfinder frame.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase Config Modal -->
+    <div id="configModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Firebase Configuration</h3>
+          <button id="closeConfigBtn" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">Paste your Firebase Project Configuration object from Firebase Console (Project Settings &gt; General &gt; Your Apps &gt; Web SDK snippet).</p>
+          
+          <div class="form-group">
+            <label for="firebaseConfigInput">Firebase Config (JSON or JS Object)</label>
+            <textarea id="firebaseConfigInput" rows="8" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "my-app.firebaseapp.com",
+  "projectId": "my-app",
+  "storageBucket": "my-app.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123456:web:abcd"
+}'></textarea>
+          </div>
+          
+          <div class="modal-actions">
+            <button id="saveConfigBtn" class="btn btn-primary">Save & Connect Firebase</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
