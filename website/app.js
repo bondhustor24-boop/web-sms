@@ -48,22 +48,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Initialize Firebase from stored config or fallback
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDummyKeyReplaceIfUsingAuth",
+  authDomain: "sms-bridge-app.firebaseapp.com",
+  projectId: "sms-bridge-app",
+  storageBucket: "sms-bridge-app.appspot.com",
+  messagingSenderId: "469402031854",
+  appId: "1:469402031854:web:smsbridgeapp"
+};
+
 function initFirebase() {
   const storedConfig = localStorage.getItem('sms_bridge_firebase_config');
+  let config = DEFAULT_FIREBASE_CONFIG;
   if (storedConfig) {
     try {
-      const config = JSON.parse(storedConfig);
-      if (!firebase.apps.length) {
-        firebase.initializeApp(config);
-      }
-      db = firebase.firestore();
-      console.log('Firebase initialized successfully.');
+      config = JSON.parse(storedConfig);
     } catch (e) {
       console.error('Error parsing stored Firebase config:', e);
     }
-  } else {
-    // Show setup reminder or load existing if window config exists
-    console.log('No Firebase config found in localStorage. Please configure Firebase.');
+  }
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(config);
+    }
+    db = firebase.firestore();
+    console.log('Firebase initialized successfully with project:', config.projectId);
+  } catch (err) {
+    console.warn('Firebase initialization notice:', err.message);
   }
 }
 
